@@ -11,30 +11,24 @@ import {
 import colors from '../misc/colors';
 import RoundBtnArrow from '../components/RoundBtnArrow';
 import AntDesign from 'react-native-vector-icons/AntDesign';
-import NoteInputModal from '../components/NoteInputModal';
 import Note from '../components/Note';
 import {useNotes} from '../context/NoteProvider';
 import NotFound from '../components/NotFound';
 import firestore from '@react-native-firebase/firestore';
 import firebase from '@react-native-firebase/app';
 import auth from '@react-native-firebase/auth';
-import androidConfig from '../firebaseConfig';
 import withFirebase from '../HOC/withFirebase';
 import {useEffect, useState} from 'react';
 import {useNavigation} from '@react-navigation/native';
+import NoteInputModal from '../Modal/NoteInputModal';
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(androidConfig);
-} else {
-  firebase.app(); // if already initialized, use this one
-}
-
-const NoteScreen = ({userData}) => {
+const NoteScreen = ({userData, setUserData, fetchData}) => {
   const [greet, setGreet] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const {notes, setNotes, findNotes} = useNotes();
+  const [loading, setLoading] = useState(false);
 
   const navigation = useNavigation();
 
@@ -51,16 +45,22 @@ const NoteScreen = ({userData}) => {
     findGreet();
   }, []);
 
+  useEffect(() => {
+    fetchData();
+    findNotes();
+  }, []);
+
   const handleOnSubmit = async (title, desc) => {
     const currentUser = firebase.auth().currentUser;
     const userRef = firestore().collection('users').doc(currentUser.uid);
     try {
-      const note = {id: Date.now(), title, desc, time: Date.now()};
+      const note = {title, desc, time: Date.now()};
 
       const noteRef = await userRef.collection('notes').add(note);
+      const noteId = noteRef.id;
       console.log(noteRef);
 
-      const updatedNotes = [...notes, note];
+      const updatedNotes = [...notes, {id: noteId, ...note}];
       setNotes(updatedNotes);
     } catch (error) {
       console.log('Error Handling Your Notes', error);
@@ -68,7 +68,7 @@ const NoteScreen = ({userData}) => {
   };
 
   const openNote = note => {
-    navigation.navigate('NoteDetails', {note});
+    navigation.navigate('NoteDetails', {note: {...note, id: note.id}});
   };
 
   const handleSearchInput = async text => {
@@ -99,10 +99,19 @@ const NoteScreen = ({userData}) => {
 
   const logOut = () => {
     try {
+      setUserData([]);
+      setNotes([]);
+      setLoading(true);
+
       firebase.auth().signOut();
-      navigation.navigate('FirstScreen');
+
+      setLoading(false);
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'Login'}],
+      });
     } catch (error) {
-      console.log('Error Logging Out, Dumb!', error);
+      console.log('Error Logging Out.', error);
     }
   };
 
@@ -111,7 +120,9 @@ const NoteScreen = ({userData}) => {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.mainContainer}>
           <View style={styles.container}>
-            <Text style={styles.title}>{`${userData.name}`}</Text>
+            {userData.name ? (
+              <Text style={styles.title}>{userData.name}</Text>
+            ) : null}
             <Text style={styles.greet}>{`~ ${greet}`}</Text>
           </View>
           {notes.length ? (
@@ -145,7 +156,7 @@ const NoteScreen = ({userData}) => {
                 justifyContent: 'space-between',
                 marginBottom: 15,
               }}
-              key={item => item.id.toString()}
+              keyExtractor={item => item.id.toString()}
               renderItem={({item}) => (
                 <Note onPress={() => openNote(item)} item={item} />
               )}
@@ -175,6 +186,7 @@ const NoteScreen = ({userData}) => {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSubmit={handleOnSubmit}
+        user={userData}
       />
     </>
   );

@@ -15,20 +15,49 @@ import * as yup from 'yup';
 import firebase from '@react-native-firebase/app';
 import firestore from '@react-native-firebase/firestore';
 import {useNavigation} from '@react-navigation/native';
-import androidConfig from '../firebaseConfig';
 import withFirebase from '../HOC/withFirebase';
+import {useTranslation} from 'react-i18next';
+import DropDownPicker from 'react-native-dropdown-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // fa39cd1b-3ef3-4b31-ae3a-4d3bc17d34eb  -- APP ID
-if (!firebase.apps.length) {
-  firebase.initializeApp(androidConfig);
-} else {
-  firebase.app(); // if already initialized, use this one
-}
 
 const Intro = ({userData, setUserData}) => {
   const {name} = userData;
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
+
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState('en');
+  const [items, setItems] = useState([
+    {label: 'English', value: 'en'},
+    {label: 'Spanish', value: 'sp'},
+  ]);
+
+  const {t, i18n} = useTranslation();
+
+  useEffect(() => {
+    AsyncStorage.getItem('selectedValue')
+      .then(selectedValue => {
+        if (selectedValue) {
+          setValue(selectedValue);
+          i18n.changeLanguage(selectedValue);
+        }
+      })
+      .catch(error => {
+        console.log('Error Fetching Your Language', error);
+      });
+  }, []);
+
+  useEffect(() => {
+    AsyncStorage.setItem('selectedValue', value)
+      .then(() => {
+        i18n.changeLanguage(value);
+      })
+      .catch(error => {
+        console.log('Error Saving Your Language', error);
+      });
+  }, [value]);
 
   useEffect(() => {
     if (name) {
@@ -42,18 +71,25 @@ const Intro = ({userData, setUserData}) => {
       const userCredentials = firebase
         .auth()
         .createUserWithEmailAndPassword(values.email, values.password);
+
       const userID = (await userCredentials).user.uid;
+
       const userRef = firestore().collection('users').doc(userID);
+
       await userRef.set({
         name: values.name,
         email: values.email,
         password: values.password,
       });
 
-      setUserData(values);
+      setUserData({...values, userID: userID});
+
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'NoteScreen'}],
+      });
 
       setLoading(false);
-      navigation.navigate('NoteScreen');
     } catch (error) {
       Alert.alert('Error Creating Your Account', error.message);
       setLoading(false);
@@ -65,8 +101,26 @@ const Intro = ({userData, setUserData}) => {
       <StatusBar barStyle="light-content" backgroundColor={colors.DARK} />
       <View style={{backgroundColor: colors.FRONT, flex: 1}}>
         <Text style={styles.header}>Note-Cial</Text>
+        <DropDownPicker
+          style={{
+            minHeight: 20,
+          }}
+          containerStyle={{
+            width: '30%',
+            minHeight: 20,
+            position: 'absolute',
+            bottom: 50,
+            left: 30,
+          }}
+          open={open}
+          value={value}
+          items={items}
+          setOpen={setOpen}
+          setValue={setValue}
+          setItems={setItems}
+        />
         <View style={styles.container}>
-          <Text style={styles.text}>Get YourSelf Started Here!!!</Text>
+          <Text style={styles.text}>{t('headerTitle')}</Text>
           <Formik
             validationSchema={getInValidation}
             initialValues={{
@@ -90,7 +144,7 @@ const Intro = ({userData, setUserData}) => {
                   onChangeText={handleChange('name')}
                   onBlur={handleBlur('name')}
                   style={styles.textInput}
-                  placeholder="Enter Your Name"
+                  placeholder={t('name')}
                 />
                 {errors.name && touched.name && (
                   <Text style={styles.error}>{errors.name}</Text>
@@ -100,7 +154,7 @@ const Intro = ({userData, setUserData}) => {
                   onChangeText={handleChange('email')}
                   onBlur={handleBlur('email')}
                   style={styles.textInput}
-                  placeholder="Enter Your Email"
+                  placeholder={t('email')}
                   keyboardType="email-address"
                 />
                 {errors.email && touched.email && (
@@ -111,7 +165,7 @@ const Intro = ({userData, setUserData}) => {
                   onChangeText={handleChange('password')}
                   onBlur={handleBlur('password')}
                   style={styles.textInput}
-                  placeholder="Enter Your Password"
+                  placeholder={t('password')}
                   secureTextEntry
                 />
                 {errors.password && touched.password && (
@@ -121,8 +175,20 @@ const Intro = ({userData, setUserData}) => {
                   onPress={handleSubmit}
                   disabled={!isValid}
                   style={styles.subBtn}>
-                  <Text style={styles.getIn}>Get In</Text>
+                  <Text style={styles.getIn}>{t('button')}</Text>
                 </TouchableOpacity>
+                <View style={styles.timtim}>
+                  <Text>{t('account')}</Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.reset({
+                        index: 0,
+                        routes: [{name: 'Login'}],
+                      })
+                    }>
+                    <Text style={styles.getInt}>{t('login')}</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
           </Formik>
@@ -142,14 +208,16 @@ const getInValidation = yup.object().shape({
     .required('Email is required for further purpose.'),
   password: yup
     .string()
-    .min(6, ({min}) => `Password must be ${min} characters.`)
+    .matches(
+      /^(?=.*[a-z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#\$%\^&\*])(?=.{6,})/,
+      'Must contain 6 characters, one uppercase, one lowercase, one number and one special case character',
+    )
     .required('Password is required for further purpose.'),
 });
 
 const styles = StyleSheet.create({
   header: {
     position: 'absolute',
-    top: 20,
     left: 100,
     fontSize: 40,
     fontFamily: 'BricolageGrotesque-Regular',
@@ -180,15 +248,29 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   subBtn: {
+    width: '30%',
     borderWidth: 2,
     borderColor: colors.VERDA,
-    borderRadius: 8,
-    backgroundColor: colors.LIGHT,
-    marginTop: 10,
+    borderRadius: 3,
+    backgroundColor: colors.VERDA,
+    marginTop: 15,
+    elevation: 10,
   },
   getIn: {
+    fontSize: 14,
     padding: 4,
-    color: colors.DARK,
+    color: colors.FRONT,
+    textAlign: 'center',
+    fontFamily: 'Merriweather-Regular',
+    textTransform: 'uppercase',
+  },
+  getInt: {
+    fontSize: 14,
+    padding: 4,
+    textAlign: 'center',
+  },
+  timtim: {
+    marginTop: 10,
   },
   error: {
     color: colors.RUBY,

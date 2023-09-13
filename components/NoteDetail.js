@@ -1,9 +1,9 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Text, StyleSheet, ScrollView, View, Alert} from 'react-native';
 import colors from '../misc/colors';
 import RoundBtnArrow from './RoundBtnArrow';
-import NoteUpdateModal from './NoteUpdateModal';
 import withFirebase from '../HOC/withFirebase';
+import NoteUpdateModal from '../Modal/NoteUpdateModal';
 
 const formatDate = ms => {
   const result = new Date(ms);
@@ -17,7 +17,7 @@ const formatDate = ms => {
   return `${day}/${mon}/${year} - ${hrs}:${min}:${sec}`;
 };
 
-const NoteDetail = ({route, navigation, userData, deleteNote, updateNote}) => {
+const NoteDetail = ({route, navigation, deleteNote, updateNote}) => {
   const {note} = route.params;
   const [showModal, setShowModal] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -67,19 +67,19 @@ const NoteDetail = ({route, navigation, userData, deleteNote, updateNote}) => {
       <View style={styles.container}>
         <RoundBtnArrow
           antIconName={'delete'}
-          size={22}
+          size={18}
           style={[
             styles.detailBtn,
-            {backgroundColor: colors.DARK, right: 45, top: 200},
+            {backgroundColor: colors.DARK, right: 45, top: 250},
           ]}
           onPress={displayDeleteAlert}
         />
         <RoundBtnArrow
           antIconName={'edit'}
-          size={22}
+          size={18}
           style={[
             styles.detailBtn,
-            {backgroundColor: colors.RUBY, right: 45, top: 250},
+            {backgroundColor: colors.RUBY, right: 45, top: 210},
           ]}
           onPress={openEditModal}
         />
@@ -114,11 +114,11 @@ const styles = StyleSheet.create({
     width: '90%',
   },
   detailBtn: {
-    width: 40,
-    height: 40,
+    width: 30,
+    height: 30,
     borderRadius: 20,
-    paddingLeft: 9,
-    paddingTop: 8,
+    paddingLeft: 6,
+    paddingTop: 6,
     elevation: 10,
     position: 'absolute',
   },

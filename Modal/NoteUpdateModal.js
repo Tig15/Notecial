@@ -7,19 +7,22 @@ import {
   StyleSheet,
   TouchableWithoutFeedback,
   Keyboard,
-  Alert,
 } from 'react-native';
 import React, {useEffect, useState} from 'react';
 import colors from '../misc/colors';
-import RoundBtnArrow from './RoundBtnArrow';
-import {useNavigation} from '@react-navigation/native';
+import RoundBtnArrow from '../components/RoundBtnArrow';
 
-const NoteInputModal = ({visible, onClose, onSubmit, isEdit, note}) => {
+const NoteUpdateModal = ({visible, onClose, onSubmit, isEdit, note}) => {
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
 
-  const navigation = useNavigation();
+  useEffect(() => {
+    if (isEdit) {
+      setTitle(note.title);
+      setDesc(note.desc);
+    }
+  }, [isEdit]);
 
   const findDate = () => {
     const result = new Date();
@@ -42,28 +45,10 @@ const NoteInputModal = ({visible, onClose, onSubmit, isEdit, note}) => {
   };
 
   const handleSubmit = () => {
-    if (!title.trim() || !desc.trim()) {
-      Alert.alert(
-        'Empty Fields!',
-        'Remember! Your Note can be updated later.',
-        [
-          {
-            text: 'Ok',
-            onPress: onClose(),
-          },
-          {
-            text: 'Cancel',
-            onPress: () => console.log('Cancelled'), // We can make function which deletes half-made card [which either contains title or desc. If a person doesn't want to keep so many cards.]
-          },
-        ],
-        {
-          cancelable: true,
-        },
-      );
-    }
+    if (!title.trim() && !desc.trim()) return onClose();
 
     if (isEdit) {
-      // For Edit
+      onSubmit(title, desc, Date.now());
     } else {
       onSubmit(title, desc);
       setTitle('');
@@ -73,8 +58,12 @@ const NoteInputModal = ({visible, onClose, onSubmit, isEdit, note}) => {
   };
 
   const closeModal = () => {
-    setTitle('');
-    setDesc('');
+    if (isEdit) {
+      // For Edit
+    } else {
+      setTitle('');
+      setDesc('');
+    }
     onClose();
   };
 
@@ -90,7 +79,7 @@ const NoteInputModal = ({visible, onClose, onSubmit, isEdit, note}) => {
         animationType="slide"
         onRequestClose={() => onClose()}>
         <View style={styles.modalHead}>
-          <Text style={styles.greet}>{`Write Your Today's Note`}</Text>
+          <Text style={styles.greet}>Fill up or Shorten Here </Text>
           <Text style={styles.date}>{date}</Text>
         </View>
         <View style={styles.textContent}>
@@ -109,22 +98,22 @@ const NoteInputModal = ({visible, onClose, onSubmit, isEdit, note}) => {
             placeholderTextColor="black"
             onChangeText={text => handleOnChangeText(text, 'desc')}
           />
-          {title.trim() || desc.trim() ? (
-            <View style={styles.btnContainer}>
-              <RoundBtnArrow
-                style={styles.twoBtn}
-                size={20}
-                antIconName={'check'}
-                onPress={handleSubmit}
-              />
+          <View style={styles.btnContainer}>
+            <RoundBtnArrow
+              style={styles.twoBtn}
+              size={20}
+              antIconName={'check'}
+              onPress={handleSubmit}
+            />
+            {title.trim() || desc.trim() ? (
               <RoundBtnArrow
                 style={styles.twoBtn}
                 size={20}
                 antIconName={'close'}
                 onPress={closeModal}
               />
-            </View>
-          ) : null}
+            ) : null}
+          </View>
         </View>
         <TouchableWithoutFeedback onPress={handleModalClose}>
           <View style={[styles.modalBg, StyleSheet.absoluteFillObject]} />
@@ -162,14 +151,14 @@ const styles = StyleSheet.create({
   },
   title: {
     borderBottomWidth: 1.5,
-    borderBottomColor: colors.VERDA,
+    borderBottomColor: colors.RUBY,
     color: colors.DARK,
     fontSize: 15,
     fontFamily: 'Kanit-Regular',
   },
   desc: {
     borderBottomWidth: 1.5,
-    borderBottomColor: colors.VERDA,
+    borderBottomColor: colors.RUBY,
     marginTop: 30,
     color: colors.DARK,
     height: 100,
@@ -178,7 +167,7 @@ const styles = StyleSheet.create({
   modalBg: {
     flex: 1,
     zIndex: -1,
-    backgroundColor: colors.LIGHT,
+    backgroundColor: colors.PEARL,
   },
   btnContainer: {
     paddingHorizontal: 120,
@@ -190,12 +179,11 @@ const styles = StyleSheet.create({
     width: 35,
     height: 35,
     borderRadius: 20,
-    backgroundColor: colors.VERDA,
+    backgroundColor: colors.RUBY,
     paddingLeft: 7,
     paddingTop: 7,
     elevation: 10,
   },
-  typo: {},
 });
 
-export default NoteInputModal;
+export default NoteUpdateModal;

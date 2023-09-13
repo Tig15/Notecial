@@ -2,13 +2,6 @@ import React, {useEffect, useState} from 'react';
 import firebase from '@react-native-firebase/app';
 import {createUserWithEmailAndPassword} from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import androidConfig from '../firebaseConfig';
-
-if (!firebase.apps.length) {
-  firebase.initializeApp(androidConfig);
-} else {
-  firebase.app(); // if already initialized, use this one
-}
 
 const withFirebase = WrappedComponent => {
   const EnhancedComponent = props => {
@@ -20,13 +13,17 @@ const withFirebase = WrappedComponent => {
       try {
         setLoading(true);
         const currentUser = firebase.auth().currentUser;
-        const uid = currentUser.uid;
-        const userRef = firestore().collection('users').doc(uid);
-        const userDoc = await userRef.get();
 
-        if (userDoc.exists) {
-          setUserData(userDoc.data());
+        if (currentUser) {
+          const userId = currentUser.uid;
+          const userRef = firestore().collection('users').doc(userId);
+          const userDoc = await userRef.get();
+
+          if (userDoc.exists) {
+            setUserData(userDoc.data());
+          }
         }
+
         setLoading(false);
       } catch (error) {
         console.error('Error Fetching User Data', error);
@@ -41,7 +38,10 @@ const withFirebase = WrappedComponent => {
       try {
         setLoading(true);
         const noteSnap = await userRef.collection('notes').get();
-        const notesData = noteSnap.docs.map(doc => doc.data());
+        const notesData = noteSnap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
         setNotes(notesData);
         setLoading(false);
       } catch (error) {
@@ -59,9 +59,14 @@ const withFirebase = WrappedComponent => {
       try {
         const currentUser = firebase.auth().currentUser;
         const userRef = firestore().collection('users').doc(currentUser.uid);
-        const noteRef = userRef.collection('notes').doc(note.id.toString());
+        const noteId = note.id;
+        const noteRef = userRef.collection('notes').doc(noteId);
 
         await noteRef.delete();
+
+        const updatedNotes = notes.filter(note => note.id !== noteId);
+        setNotes(updatedNotes);
+
         props.navigation.goBack();
       } catch (error) {
         console.error('Error deleting note', error);
@@ -72,13 +77,21 @@ const withFirebase = WrappedComponent => {
       try {
         const currentUser = firebase.auth().currentUser;
         const userRef = firestore().collection('users').doc(currentUser.uid);
-        const noteRef = userRef.collection('notes').doc(note.id);
+        const noteId = note.id;
+        const noteRef = userRef.collection('notes').doc(noteId);
 
-        await noteRef.set({
+        await noteRef.update({
           title,
           desc,
           time,
         });
+
+        const updatedNotes = notes.map(note =>
+          note.id === noteId ? {...note, title, desc, time} : note,
+        );
+        console.log(updatedNotes);
+
+        setNotes(updatedNotes);
       } catch (error) {
         console.error('Error updating note', error);
       }
@@ -94,6 +107,7 @@ const withFirebase = WrappedComponent => {
         findNotes={findNotes}
         deleteNote={deleteNote}
         updateNote={updateNote}
+        fetchData={fetchUserData}
       />
     );
   };
