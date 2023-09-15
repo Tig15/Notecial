@@ -7,6 +7,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   FlatList,
+  Image,
 } from 'react-native';
 import colors from '../misc/colors';
 import RoundBtnArrow from '../components/RoundBtnArrow';
@@ -120,11 +121,25 @@ const NoteScreen = ({userData, setUserData, fetchData}) => {
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.mainContainer}>
           <View style={styles.container}>
-            {userData.name ? (
-              <Text style={styles.title}>{userData.name}</Text>
-            ) : null}
-            <Text style={styles.greet}>{`~ ${greet}`}</Text>
+            <View style={styles.userInfo}>
+              {userData.name && !firebase.auth().currentUser ? (
+                <Text style={styles.title}>{userData.name}</Text>
+              ) : (
+                firebase.auth().currentUser && (
+                  <>
+                    <Image
+                      source={{uri: firebase.auth().currentUser.photoURL}}
+                      style={styles.profilePhoto}
+                    />
+                    <Text style={styles.title}>
+                      {firebase.auth().currentUser.displayName}
+                    </Text>
+                  </>
+                )
+              )}
+            </View>
           </View>
+          <Text style={styles.greet}>{`~ ${greet}`}</Text>
           {notes.length ? (
             <View style={styles.btnContent}>
               <TextInput
@@ -198,28 +213,27 @@ const styles = StyleSheet.create({
     backgroundColor: colors.PLATI,
   },
   container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingBottom: 7,
+    paddingBottom: 10,
   },
   greet: {
-    fontSize: 14,
-    marginTop: 18,
-    marginRight: 10,
+    fontSize: 12,
     fontFamily: 'CrimsonText-Regular',
     color: colors.DARK,
     borderBottomWidth: 0.5,
     borderBottomColor: colors.DARK,
+    position: 'absolute',
+    right: 5,
+    top: 35,
   },
   title: {
-    fontSize: 22,
+    fontSize: 17,
     fontFamily: 'Merriweather-Regular',
-    marginTop: 10,
-    marginLeft: 20,
+    marginTop: 5,
+    marginLeft: 15,
     color: colors.DARK,
     borderBottomWidth: 1,
     borderBottomColor: colors.DARK,
-    padding: 2,
+    paddingTop: 19,
   },
   searchBar: {
     borderWidth: StyleSheet.hairlineWidth,
@@ -277,6 +291,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 40,
     bottom: 14,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  profilePhoto: {
+    height: 40,
+    width: 40,
+    borderRadius: 40,
+    marginLeft: 15,
+    marginTop: 14,
   },
 });
 

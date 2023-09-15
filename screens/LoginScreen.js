@@ -21,11 +21,14 @@ import {
   GoogleSigninButton,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
+import {useNavigation} from '@react-navigation/native';
 
-function LoginScreen({navigation, fetchData}) {
+function LoginScreen({fetchData}) {
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [loggedIn, setloggedIn] = useState(false);
+
+  const navigation = useNavigation();
 
   const validationSchema = yup.object().shape({
     email: yup
@@ -63,13 +66,38 @@ function LoginScreen({navigation, fetchData}) {
   const signIn = async () => {
     try {
       await GoogleSignin.hasPlayServices();
-      const {accessToken, idToken} = await GoogleSignin.signIn();
+      await GoogleSignin.signOut();
+      const {accessToken, idToken, user} = await GoogleSignin.signIn();
       setloggedIn(true);
+
+      console.log(user);
+
+      const credential = firebase.auth.GoogleAuthProvider.credential(
+        idToken,
+        accessToken,
+      );
+      await firebase.auth().signInWithCredential(credential);
+
+      const currentUser = firebase.auth().currentUser;
+      if (currentUser) {
+        const {displayName, email, photoURL} = currentUser;
+
+        const userProfile = {
+          displayName,
+          email,
+          photoURL,
+        };
+
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'NoteScreen', params: {userProfile}}],
+        });
+      }
     } catch (error) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         Alert.alert(
           'Are you sure?',
-          'You can log with google service to sync your data.',
+          'You can log in with Google to sync your data.',
           [
             {
               text: 'Ok',
@@ -77,11 +105,11 @@ function LoginScreen({navigation, fetchData}) {
           ],
         );
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        Alert.alert('Signin in progress');
+        Alert.alert('Sign-in in progress');
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         Alert.alert('PLAY_SERVICES_NOT_AVAILABLE');
       } else {
-        // some other error happened
+        Alert.alert('Google Sign In Error');
       }
     }
   };
