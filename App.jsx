@@ -81,6 +81,4 @@ function App({route}) {
   );
 }
 
-// Line 39 - GPT
-
 export default withFirebase(App);

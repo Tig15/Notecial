@@ -20,7 +20,7 @@ import {useTranslation} from 'react-i18next';
 import DropDownPicker from 'react-native-dropdown-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// fa39cd1b-3ef3-4b31-ae3a-4d3bc17d34eb  -- APP ID
+// fa39cd1b-3ef3-4b31-ae3a-4d3bc17d34eb  -- APP ID [OneSignal]
 
 const Intro = ({userData, setUserData}) => {
   const {name} = userData;

@@ -21,7 +21,7 @@ import {
   GoogleSigninButton,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
-import {useNavigation} from '@react-navigation/native';
+import {CommonActions, useNavigation} from '@react-navigation/native';
 
 function LoginScreen({fetchData}) {
   const [loading, setLoading] = useState(false);
@@ -88,10 +88,17 @@ function LoginScreen({fetchData}) {
           photoURL,
         };
 
-        navigation.reset({
-          index: 0,
-          routes: [{name: 'NoteScreen', params: {userProfile}}],
-        });
+        // navigation.reset({
+        //   index: 0,
+        //   routes: [{name: 'NoteScreen', params: {userProfile}}],
+        // });
+
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 1,
+            routes: [{name: 'NoteScreen', params: {userProfile}}],
+          }),
+        );
       }
     } catch (error) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
